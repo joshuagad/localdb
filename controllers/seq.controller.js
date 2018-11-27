@@ -29,14 +29,14 @@ exports.uploadNewSeq = async function(req, res, next) {
       console.log('File uploaded to '+localPath);
     });
     var fastaStream = fs.createReadStream(localPath);
-    Sequence.write({filename: req.files.data.name, metadata: {date_created: Date.now()}}, fastaStream, function(err, file) {
+    Sequence.write({filename: req.files.data.name, metadata: JSON.parse(req.body.metadata)}, fastaStream, function(err, file) {
       console.log("Added "+localPath+" to mongo");
     });
     await fs.unlink(localPath, function(err) {
       if (err) throw err;
       console.log('File deleted from '+localPath);
     });
-    res.end();
+    res.json({'message':'ok'});
   }
 };
 
@@ -49,14 +49,23 @@ exports.getSeqList = function(req, res, next) {
 };
 
 exports.getSeqMetadataByID = function(req, res, next) {
+  var Sequence = gridfs.model;
   Sequence.findById(req.params.id, function(err, sequence) {
     if (err) throw err;
     res.json(sequence);
   });
 };
 
+exports.getSequenceFastaByID = function(req, res, next) {
+  var Sequence = gridfs.model;
+  var stream = Sequence.readById(req.params.id);
+  res.attachment('sequence.fa');
+  stream.pipe(res);
+};
+
 exports.deleteSeqByID = function(req, res, next) {
-  Sequence.deleteOne({ _id: req.params.id }, function(err, sequence) {
+  var Sequence = gridfs.model;
+  Sequence.unlinkById(req.params.id, function(err, sequence) {
     if (err) throw err;
     res.json(sequence);
   });
