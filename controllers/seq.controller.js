@@ -16,20 +16,20 @@ mongoose.connection.on("error", function(err) {
   console.log("Could not connect to mongo server!");
   return console.log(err);
 });
-//var Sequence = require('../models/sequence.model.js');
 
 exports.uploadNewSeq = async function(req, res, next) {
   if (req.files == null) res.sendStatus(400);
   else {
     var Sequence = gridfs.model;
-    var seqFile = req.files.data;
-    var localPath = '/tmp/' + Date.now() + '-' + req.files.data.name;
+    var seqFile = req.files.sequence;
+    var localPath = '/tmp/' + Date.now() + '-' + req.files.sequence.name;
     await seqFile.mv(localPath, function(err) {
       if (err) throw err;
       console.log('File uploaded to '+localPath);
     });
     var fastaStream = fs.createReadStream(localPath);
-    Sequence.write({filename: req.files.data.name, metadata: JSON.parse(req.body.metadata)}, fastaStream, function(err, file) {
+    var metadata = JSON.parse(req.body.metadata);
+    Sequence.write({_id: metadata._id, filename: req.files.sequence.name, metadata: metadata}, fastaStream, function(err, file) {
       console.log("Added "+localPath+" to mongo");
     });
     await fs.unlink(localPath, function(err) {
